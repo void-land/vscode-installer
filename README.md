@@ -45,7 +45,8 @@ rm -rf ~/.local/share/applications/code-url-handler.desktop
 
 ## Notes
 
-- For Flatpak users, please refer to the specific instructions for Flatpak version management.
+- For Flatpak users, you can install Visual Studio Code from [Flathub](https://flathub.org/apps/details/com.visualstudio.code).
+- For manual download, you can get the Debian package from the [official Visual Studio Code website](https://code.visualstudio.com/Download).
 
 ## Disclaimer
 
