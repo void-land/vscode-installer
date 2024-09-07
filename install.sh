@@ -1,4 +1,4 @@
-#!/usr/bin/env sh 
+#!/usr/bin/env sh
 
 arch="$(uname -m)"
 platform="$(uname -s)"
@@ -16,8 +16,6 @@ desktop_icon_path="$app_installation_path/pixmaps/vscode.png"
 
 download_location=/tmp/vscode
 download_file="$download_location/code.deb"
-
-set -eu
 
 log() {
 	local color_reset="\033[0m"
@@ -49,12 +47,18 @@ main() {
 	log info "Detected platform: $platform"
 	log info "Detected architecture: $arch"
 
+	command -v curl >/dev/null || {
+		log error "Curl not found, please install. Exiting..." >&2
+
+		exit 1
+	}
+
 	if [ "$platform" = "Darwin" ]; then
 		platform="macos"
 	elif [ "$platform" = "Linux" ]; then
 		platform="linux"
 	else
-		log error "Unsupported platform $platform"
+		log error "Unsupported platform $platform Exiting..."
 
 		exit 1
 	fi
@@ -73,20 +77,16 @@ main() {
 		arch="armhf"
 		;;
 	*)
-		log error "Unsupported architecture: $arch"
+		log error "Unsupported architecture: $arch Exiting..."
 		exit 1
 		;;
 	esac
 
-	log info "Installing $display_name for $platform-$arch"
-
 	do_fetch
+	pre_extract
+	do_extract
 	do_install
-
-	log success "$display_name installation completed."
-
-	# Display instructions for adding ~/.local/bin to PATH
-	# display_path_instructions
+	post_install
 }
 
 do_fetch() {
@@ -95,24 +95,37 @@ do_fetch() {
 	mkdir -p "$download_location"
 
 	log info "Downloading Visual Studio Code..."
+
 	curl --progress-bar -fLC - "$download_url" -o "$download_file"
 }
 
-do_install() {
+pre_extract() {
 	log info "Setting up installation directories"
-	rm -rf "$app_installation_path"
-	mkdir -p "$local_bin_path" "$local_application_path" "$app_installation_path"
 
+	rm -rf "$app_installation_path"
+
+	mkdir -p "$local_bin_path"
+	mkdir -p "$local_application_path"
+	mkdir -p "$app_installation_path"
+}
+
+do_extract() {
 	log info "Extracting Vscode from the package"
+
 	cd "$download_location"
 	ar xv "$download_file"
-	tar xfv "$download_location/data.tar.xz" -C "$download_location"
+	tar xf "$download_location/data.tar.xz" -C "$download_location"
+}
+
+do_install() {
+	log info "Installing Vscode to $app_installation_path"
+
 	mv "$download_location/usr/share/"* "$app_installation_path"
+
+	log info "Linking vscode binary to $local_bin_path"
 
 	if [ -f "$executable_path" ]; then
 		ln -sf "$executable_path" "$local_bin_path"
-
-		log success "Linked binary to $local_bin_path"
 	else
 		log error "Failed to link vscode binary"
 
@@ -127,8 +140,33 @@ do_install() {
 	done
 
 	cp "$app_installation_path/applications/"*.desktop "$local_application_path"
+}
 
-	log success ".desktop files updated and copied to $local_application_path"
+post_install() {
+	log success "$display_name installation completed."
+
+	if [ "$(which "code")" = "$local_bin_path/code" ]; then
+		echo "Vscode has been installed. Run with 'code'"
+	else
+		echo "To run Vscode from your terminal, you must add ~/.local/bin to your PATH"
+		echo "Run:"
+
+		case "$SHELL" in
+		*zsh)
+			echo "   echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.zshrc"
+			echo "   source ~/.zshrc"
+			;;
+		*fish)
+			echo "   fish_add_path -U $HOME/.local/bin"
+			;;
+		*)
+			echo "   echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.bashrc"
+			echo "   source ~/.bashrc"
+			;;
+		esac
+
+		echo "To run Vscode now, '~/.local/bin/code'"
+	fi
 }
 
 main "$@"
