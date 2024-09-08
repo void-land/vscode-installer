@@ -11,7 +11,7 @@ local_bin_path="$HOME/.local/bin"
 local_application_path="$HOME/.local/share/applications"
 app_installation_path="$HOME/.local/vscode-stable"
 
-executable_path="$app_installation_path/code/code"
+executable_path="$app_installation_path/code/bin/code"
 desktop_icon_path="$app_installation_path/pixmaps/vscode.png"
 
 download_location=/tmp/vscode
