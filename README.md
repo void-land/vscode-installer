@@ -6,7 +6,7 @@
     <h4 align="center">Automated shell script for installing Visual Studio Code on Linux.</h4>
     <p align="center">
         <strong>Supports:</strong> x64, arm64, and x86 architectures
-    </p> 
+    </p>
 </p>
 
 ## Features
@@ -24,12 +24,24 @@
 2. Run the following command in your terminal:
 
 ```
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/void-land/vscode-installer/main/install.sh)"
+```
+
+or
+
+```
 curl -f https://raw.githubusercontent.com/void-land/vscode-installer/main/install.sh | sh
 ```
 
 ## Uninstallation
 
 To uninstall Visual Studio Code, run the following command:
+
+```
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/void-land/vscode-installer/main/uninstall.sh)"
+```
+
+or
 
 ```
 curl -f https://raw.githubusercontent.com/void-land/vscode-installer/main/uninstall.sh | sh

@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+set -eu
 
 arch="$(uname -m)"
 platform="$(uname -s)"
@@ -19,10 +20,10 @@ download_file="$download_location/code.deb"
 
 log() {
 	local color_reset="\033[0m"
-	local color_green="\033[32m"
-	local color_yellow="\033[33m"
-	local color_red="\033[31m"
-	local color_blue="\033[34m"
+	local color_green="\033[38;2;0;255;0m"    # Bright green
+	local color_yellow="\033[38;2;255;255;0m" # Bright yellow
+	local color_red="\033[38;2;255;0;0m"      # Bright red
+	local color_blue="\033[38;2;0;0;255m"     # Bright blue
 
 	case "$1" in
 	success)
@@ -50,6 +51,11 @@ main() {
 	command -v curl >/dev/null || {
 		log error "Curl not found, please install. Exiting..." >&2
 
+		exit 1
+	}
+
+	command -v zstd >/dev/null || {
+		log error "Zstandard (zstd) not found, please install. Exiting..." >&2
 		exit 1
 	}
 
@@ -113,8 +119,20 @@ do_extract() {
 	log info "Extracting Vscode from the package"
 
 	cd "$download_location"
-	ar xv "$download_file"
-	tar xf "$download_location/data.tar.xz" -C "$download_location"
+
+	ar x "$download_file"
+
+	if [ -f "$download_location/data.tar.xz" ]; then
+		log info "Extracting data.tar.xz..."
+
+		tar xf "$download_location/data.tar.xz" -C "$download_location"
+	elif [ -f "$download_location/data.tar.zst" ]; then
+		log info "Extracting data.tar.zst..."
+
+		tar xf "$download_location/data.tar.zst" -C "$download_location"
+	else
+		log error "Neither data.tar.xz nor data.tar.zst found in $download_location."
+	fi
 }
 
 do_install() {
