@@ -35,19 +35,7 @@ curl -f https://raw.githubusercontent.com/void-land/vscode-installer/main/instal
 
 ## Uninstallation
 
-To uninstall Visual Studio Code, run the following command:
-
-```
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/void-land/vscode-installer/main/uninstall.sh)"
-```
-
-or
-
-```
-curl -f https://raw.githubusercontent.com/void-land/vscode-installer/main/uninstall.sh | sh
-```
-
-Alternatively, you can manually delete the installation directory:
+To uninstall Visual Studio Code, run the following commands:
 
 ```
 rm -rf ~/.local/vscode-stable ~/.local/bin/code
