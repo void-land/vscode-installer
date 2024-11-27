@@ -53,11 +53,6 @@ main() {
 		exit 1
 	}
 
-	command -v unzip >/dev/null || {
-		log error "Unzip not found, please install. Exiting..." >&2
-		exit 1
-	}
-
 	if [ "$platform" != "Linux" ]; then
 		log error "This script only supports Linux. Exiting..."
 		exit 1
@@ -153,6 +148,17 @@ Categories=Utility;TextEditor;Development;IDE;
 MimeType=x-scheme-handler/vscode;
 Keywords=vscode;
 EOF
+
+	log info "Registering Visual Studio Code as a URL handler"
+
+	if command -v update-desktop-database >/dev/null 2>&1 && command -v xdg-mime >/dev/null 2>&1; then
+		log info "Both update-desktop-database and xdg-mime are available, proceeding with registration"
+
+		update-desktop-database "$local_application_path"
+		xdg-mime default code-url-handler.desktop x-scheme-handler/vscode
+	else
+		log warning "Required tools (update-desktop-database or xdg-mime) not found. Skipping URL handler registration."
+	fi
 }
 
 post_install() {
