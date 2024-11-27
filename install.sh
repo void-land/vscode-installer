@@ -12,11 +12,11 @@ local_bin_path="$HOME/.local/bin"
 local_application_path="$HOME/.local/share/applications"
 app_installation_path="$HOME/.local/vscode-stable"
 
-executable_path="$app_installation_path/code/bin/code"
-desktop_icon_path="$app_installation_path/pixmaps/vscode.png"
+executable_path="$app_installation_path/bin/code"
+desktop_icon_path="$app_installation_path/resources/app/resources/linux/code.png"
 
 download_location=/tmp/vscode
-download_file="$download_location/code.deb"
+download_file="$download_location/code.tar.gz"
 
 log() {
 	local color_reset="\033[0m"
@@ -50,31 +50,22 @@ main() {
 
 	command -v curl >/dev/null || {
 		log error "Curl not found, please install. Exiting..." >&2
-
 		exit 1
 	}
 
-	command -v zstd >/dev/null || {
-		log error "Zstandard (zstd) not found, please install. Exiting..." >&2
+	command -v unzip >/dev/null || {
+		log error "Unzip not found, please install. Exiting..." >&2
 		exit 1
 	}
 
-	if [ "$platform" = "Darwin" ]; then
-		platform="macos"
-	elif [ "$platform" = "Linux" ]; then
-		platform="linux"
-	else
-		log error "Unsupported platform $platform Exiting..."
-
+	if [ "$platform" != "Linux" ]; then
+		log error "This script only supports Linux. Exiting..."
 		exit 1
 	fi
 
 	case "$arch" in
 	x86_64)
 		arch="x64"
-		;;
-	i[3-6]86)
-		arch="x86"
 		;;
 	arm64 | aarch64)
 		arch="arm64"
@@ -83,7 +74,7 @@ main() {
 		arch="armhf"
 		;;
 	*)
-		log error "Unsupported architecture: $arch Exiting..."
+		log error "Unsupported architecture: $arch. This script only supports 64-bit Linux. Exiting..."
 		exit 1
 		;;
 	esac
@@ -96,11 +87,11 @@ main() {
 }
 
 do_fetch() {
-	local download_url="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-$arch"
+	local download_url="https://code.visualstudio.com/sha/download?build=stable&os=linux-$arch"
 
 	mkdir -p "$download_location"
 
-	log info "Downloading Visual Studio Code..."
+	log info "Downloading Visual Studio Code from $download_url..."
 
 	curl --progress-bar -fLC - "$download_url" -o "$download_file"
 }
@@ -116,59 +107,62 @@ pre_extract() {
 }
 
 do_extract() {
-	log info "Extracting Vscode from the package"
+	log info "Extracting Visual Studio Code from the .tar.gz file"
 
-	cd "$download_location"
-
-	ar x "$download_file"
-
-	if [ -f "$download_location/data.tar.xz" ]; then
-		log info "Extracting data.tar.xz..."
-
-		tar xf "$download_location/data.tar.xz" -C "$download_location"
-	elif [ -f "$download_location/data.tar.zst" ]; then
-		log info "Extracting data.tar.zst..."
-
-		tar xf "$download_location/data.tar.zst" -C "$download_location"
-	else
-		log error "Neither data.tar.xz nor data.tar.zst found in $download_location."
-	fi
+	tar -xzf "$download_file" -C "$app_installation_path" --strip-components=1
 }
 
 do_install() {
-	log info "Installing Vscode to $app_installation_path"
-
-	mv "$download_location/usr/share/"* "$app_installation_path"
-
-	log info "Linking vscode binary to $local_bin_path"
+	log info "Linking Visual Studio Code binary to $local_bin_path"
 
 	if [ -f "$executable_path" ]; then
-		ln -sf "$executable_path" "$local_bin_path"
+		ln -sf "$executable_path" "$local_bin_path/$name"
 	else
-		log error "Failed to link vscode binary"
-
+		log error "Failed to link Visual Studio Code binary"
 		exit 1
 	fi
 
-	log info "Updating .desktop file with executable and icon paths"
+	log info "Creating .desktop file for Visual Studio Code"
 
-	for file in "$app_installation_path/applications/"*.desktop; do
-		sed -i "s|/usr/share/code/code|$executable_path|g" "$file"
-		sed -i "s|Icon=vscode|Icon=$desktop_icon_path|g" "$file"
-	done
+	cat <<EOF >"$local_application_path/code.desktop"
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$display_name
+Icon=$desktop_icon_path
+Exec=$executable_path %F
+Comment=Code Editing. Redefined.
+Categories=Development;IDE;
+Terminal=false
+StartupNotify=true
+EOF
 
-	cp "$app_installation_path/applications/"*.desktop "$local_application_path"
+	log info "Creating URL handler .desktop file for vscode:// links"
+
+	cat <<EOF >"$local_application_path/code-url-handler.desktop"
+[Desktop Entry]
+Name=Visual Studio Code - URL Handler
+Comment=Code Editing. Redefined.
+GenericName=Text Editor
+Exec=$executable_path --open-url %U
+Icon=$desktop_icon_path
+Type=Application
+NoDisplay=true
+StartupNotify=true
+Categories=Utility;TextEditor;Development;IDE;
+MimeType=x-scheme-handler/vscode;
+Keywords=vscode;
+EOF
 }
 
 post_install() {
 	log success "$display_name installation completed."
 
-	if [ "$(which "code")" = "$local_bin_path/code" ]; then
-		echo "Vscode has been installed. Run with 'code'"
+	if [ "$(which "$name")" = "$local_bin_path/$name" ]; then
+		echo "Visual Studio Code has been installed. Run with 'code'."
 	else
-		echo "To run Vscode from your terminal, you must add ~/.local/bin to your PATH"
+		echo "To run Visual Studio Code from your terminal, you must add ~/.local/bin to your PATH."
 		echo "Run:"
-
 		case "$SHELL" in
 		*zsh)
 			echo "   echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.zshrc"
@@ -182,8 +176,6 @@ post_install() {
 			echo "   source ~/.bashrc"
 			;;
 		esac
-
-		echo "To run Vscode now, '~/.local/bin/code'"
 	fi
 }
 
